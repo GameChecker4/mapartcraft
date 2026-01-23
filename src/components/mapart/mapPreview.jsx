@@ -1,7 +1,6 @@
 import React, { Component, createRef } from "react";
 
 import Tooltip from "../tooltip";
-import MapCanvasWorker from "./workers/mapCanvas.jsworker"; // FINALLY got this to work; .js gets imported as code, anything else as URL
 
 import BackgroundColourModes from "./json/backgroundColourModes.json";
 import CropModes from "./json/cropModes.json";
@@ -21,7 +20,7 @@ class MapPreview extends Component {
     workerProgress: 0,
   };
 
-  mapCanvasWorker = new Worker(MapCanvasWorker);
+  mapCanvasWorker = new Worker(new URL("./workers/mapCanvas", import.meta.url));
 
   constructor(props) {
     super(props);
@@ -187,8 +186,8 @@ class MapPreview extends Component {
     const ctx_source = canvasRef_source.current.getContext("2d");
     ctx_source.imageSmoothingEnabled = true;   // These two options keep the map preview consistent on Chrome(ium). Otherwise the first render after changing
     ctx_source.imageSmoothingQuality = "high"; // map x or z size is pixelated to a noticeably lower quality. This is not a solution to the cause but a
-                                               // workaround the effect (I do not know exactly why this happens: maybe it is to do with
-                                               // anti-fingerprinting). Firefox is unaffected by any of this.
+    // workaround the effect (I do not know exactly why this happens: maybe it is to do with
+    // anti-fingerprinting). Firefox is unaffected by any of this.
     ctx_source.clearRect(0, 0, ctx_source.canvas.width, ctx_source.canvas.height);
 
     if (optionValue_preprocessingEnabled) {
@@ -279,7 +278,7 @@ class MapPreview extends Component {
     const ctx_source = canvasRef_source.current.getContext("2d");
     const canvasImageData = ctx_source.getImageData(0, 0, ctx_source.canvas.width, ctx_source.canvas.height);
     const t0 = performance.now();
-    this.mapCanvasWorker = new Worker(MapCanvasWorker);
+    this.mapCanvasWorker = new Worker(new URL("./workers/mapCanvas", import.meta.url));
     this.mapCanvasWorker.onmessage = (e) => {
       if (e.data.head === "PIXELS_MATERIALS_CURRENTSELECTEDBLOCKS") {
         const t1 = performance.now();
@@ -426,9 +425,9 @@ class MapPreview extends Component {
           style={
             [0, 1].includes(workerProgress)
               ? {
-                  display: "unset",
-                  visibility: "hidden",
-                }
+                display: "unset",
+                visibility: "hidden",
+              }
               : { display: "block" }
           }
         >
