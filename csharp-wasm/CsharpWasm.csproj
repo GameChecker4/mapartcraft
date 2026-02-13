@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <RootNamespace>CsharpWasm</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <IsTrimmable>true</IsTrimmable>
+        <PublishTrimmed>true</PublishTrimmed>
+
+        <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+<!--        <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>-->
+
+        <WasmFingerprintAssets>false</WasmFingerprintAssets>
+        <CompressionEnabled>false</CompressionEnabled>
+        <WasmBundlerFriendlyBootConfig>true</WasmBundlerFriendlyBootConfig>
+
+<!--        <WasmEnableThreads>true</WasmEnableThreads>-->
+
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <InvariantTimezone>true</InvariantTimezone>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="$(Configuration) == 'Debug'">
+<!--        <WasmEmitSymbolMap>true</WasmEmitSymbolMap>-->
+<!--        <WasmNativeStrip>false</WasmNativeStrip>-->
+<!--        <WasmBuildNative>true</WasmBuildNative>-->
+<!--        <WasmDebugLevel>1</WasmDebugLevel>-->
+<!--        <WasmNativeDebugSymbols>true</WasmNativeDebugSymbols>-->
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\csharp-solver\CsharpSolver.csproj" />
+    </ItemGroup>
+
+</Project>

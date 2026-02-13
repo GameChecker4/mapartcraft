@@ -1,3 +1,5 @@
+import CsharpWasmImport, { CsharpWasm } from "../../../csharp-wasm/csharpWasmImport";
+
 // begin variables passed in onmessage
 var coloursJSON: Record<string, {
   tonesRGB: Record<ColourTone, number[]>,
@@ -43,6 +45,8 @@ var currentSelectedBlocks: Record<string, string>;
 var exactColourCache = new Map<number, Colour>(); // for mapping RGB that exactly matches in coloursJSON to colourSetId and tone
 
 var progressReportHead: string;
+
+var csharpWasm: CsharpWasm;
 
 /*
   A mapping from type names to NBT type numbers.
@@ -976,7 +980,7 @@ function setupColoursLayoutsFromPixelsData() {
   }
 }
 
-onmessage = (e) => {
+onmessage = async (e) => {
   coloursJSON = e.data.body.coloursJSON;
   MapModes = e.data.body.MapModes;
   WhereSupportBlocksModes = e.data.body.WhereSupportBlocksModes;
@@ -1006,6 +1010,17 @@ onmessage = (e) => {
       // Layered mode is not implemented, use Valley as fallback
       if (optionValue_staircasing === MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId) {
         optionValue_staircasing = MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId;
+
+        if (csharpWasm === undefined) {
+          csharpWasm = await CsharpWasmImport;
+        }
+
+        await csharpWasm.Program.HelloWorld((progress) => {
+          postMessage({
+            head: progressReportHead,
+            body: progress,
+          });
+        });
       }
       for (let whichMap_y = 0; whichMap_y < maps.length; whichMap_y++) {
         for (let whichMap_x = 0; whichMap_x < maps[0].length; whichMap_x++) {

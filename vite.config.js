@@ -1,9 +1,30 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import ignoreDynamicImports from 'vite-plugin-ignore-dynamic-imports';
 
 export default defineConfig({
-    plugins: [react()],
+    plugins: [
+        react(),
+        ignoreDynamicImports({
+            include: [
+                "src/csharp-wasm/build/**/*.js",
+                "src/csharp-wasm/build/**/*.mjs"
+            ]
+        }),
+    ],
     build: {
         outDir: 'build', // CRA's default build output
+    },
+    assetsInclude: [
+        "**/*.dll",
+    ],
+    server: {
+        headers: {
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "Cross-Origin-Embedder-Policy": "require-corp",
+        },
+    },
+    worker: {
+        format: "es",
     },
 });

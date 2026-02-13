@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CsharpWasm", "csharp-wasm\CsharpWasm.csproj", "{262A00C2-B272-43EA-8BA1-F793D5906F93}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CsharpSolver", "csharp-solver\CsharpSolver.csproj", "{B7EC0C56-1858-4274-8EED-D1F37C04B10A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{262A00C2-B272-43EA-8BA1-F793D5906F93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{262A00C2-B272-43EA-8BA1-F793D5906F93}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{262A00C2-B272-43EA-8BA1-F793D5906F93}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{262A00C2-B272-43EA-8BA1-F793D5906F93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7EC0C56-1858-4274-8EED-D1F37C04B10A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7EC0C56-1858-4274-8EED-D1F37C04B10A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7EC0C56-1858-4274-8EED-D1F37C04B10A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7EC0C56-1858-4274-8EED-D1F37C04B10A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

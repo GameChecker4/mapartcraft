@@ -19,7 +19,7 @@ class GreenButtons extends Component {
     mapPreviewWorker_onFinishCallback: null,
   };
 
-  nbtWorker = new Worker(new URL("./workers/nbt", import.meta.url));
+  nbtWorker = new Worker(new URL("./workers/nbt", import.meta.url), { type: "module" });
 
   resetButtonWidths() {
     this.setState({
@@ -61,7 +61,7 @@ class GreenButtons extends Component {
     let numberOfSplitsCalculated = 0;
     let zipFile = new JSZip();
     const t0 = performance.now();
-    this.nbtWorker = new Worker(new URL("./workers/nbt", import.meta.url));
+    this.nbtWorker = new Worker(new URL("./workers/nbt", import.meta.url), { type: "module" });
     this.nbtWorker.onmessage = (e) => {
       switch (e.data.head) {
         case "PROGRESS_REPORT_CREATE_NBT_JOINED_FOR_VIEW_ONLINE": {
