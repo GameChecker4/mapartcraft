@@ -99,6 +99,7 @@
       "OFF": "Apagado (2D)",
       "CLASSIC": "Encendido (clásico)",
       "VALLEY": "Encendido (valle)",
+      "LAYERED": null,
       "FULL-DARK": "Oscuro (Creciente Sur-Norte)",
       "FULL-LIGHT": "Claro (Creciente Norte-Sur)",
       "ON": "Encendido",

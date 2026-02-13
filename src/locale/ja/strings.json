@@ -99,6 +99,7 @@
       "OFF": "オフ (2D)",
       "CLASSIC": "オン (Classic; 高さの変化が連続的)",
       "VALLEY": "オン (Valley; 高さの極小値を0に揃える)",
+      "LAYERED": null,
       "FULL-DARK": "すべて暗色",
       "FULL-LIGHT": "すべて明色",
       "ON": "オン",

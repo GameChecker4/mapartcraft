@@ -30,6 +30,7 @@ class BlockSelection extends Component {
       }
       case MapModes.SCHEMATIC_NBT.staircaseModes.CLASSIC.uniqueId:
       case MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId:
+      case MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId:
       case MapModes.MAPDAT.staircaseModes.ON.uniqueId: {
         background = `linear-gradient(${this.cssRGB(colourSet.tonesRGB.dark)} 33%, ${this.cssRGB(colourSet.tonesRGB.normal)} 33%, ${this.cssRGB(
           colourSet.tonesRGB.normal

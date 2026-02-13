@@ -99,6 +99,7 @@
       "OFF": "關閉 (2D)",
       "CLASSIC": "啟用 (傳統)",
       "VALLEY": "啟用 (山谷)",
+      "LAYERED": null,
       "FULL-DARK": "全暗",
       "FULL-LIGHT": "全亮",
       "ON": "啟用",

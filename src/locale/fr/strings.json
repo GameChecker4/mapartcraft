@@ -99,6 +99,7 @@
       "OFF": "Off (2D)",
       "CLASSIC": "On (classique)",
       "VALLEY": "On (Vallée)",
+      "LAYERED": null,
       "FULL-DARK": null,
       "FULL-LIGHT": null,
       "ON": "On",

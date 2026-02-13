@@ -99,6 +99,7 @@
       "OFF": "关（2D）",
       "CLASSIC": "开（原版）",
       "VALLEY": "开(山谷版)",
+      "LAYERED": null,
       "FULL-DARK": "全暗",
       "FULL-LIGHT": "全亮",
       "ON": "开",

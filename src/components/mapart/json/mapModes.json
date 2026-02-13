@@ -21,6 +21,12 @@
         "toneKeys": ["dark", "normal", "light"],
         "extra": false
       },
+      "LAYERED": {
+        "uniqueId": 11,
+        "localeKey": "MAP-SETTINGS/3D/LAYERED",
+        "toneKeys": ["dark", "normal", "light"],
+        "extra": false
+      },
       "FULL_DARK": {
         "uniqueId": 3,
         "localeKey": "MAP-SETTINGS/3D/FULL-DARK",

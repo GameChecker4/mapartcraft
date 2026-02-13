@@ -35,7 +35,7 @@ class MapartController extends Component {
     optionValue_cropImage_percent_x: 50,
     optionValue_cropImage_percent_y: 50,
     optionValue_showGridOverlay: false,
-    optionValue_staircasing: MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId,
+    optionValue_staircasing: MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId,
     optionValue_whereSupportBlocks: WhereSupportBlocksModes.ALL_OPTIMIZED.uniqueId,
     optionValue_supportBlock: "cobblestone",
     optionValue_transparency: false,
@@ -218,7 +218,7 @@ class MapartController extends Component {
     const mode = parseInt(e.target.value);
     this.setState({ optionValue_modeNBTOrMapdat: mode });
     if (mode === MapModes.SCHEMATIC_NBT.uniqueId) {
-      this.setState({ optionValue_staircasing: MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId });
+      this.setState({ optionValue_staircasing: MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId });
     } else {
       this.setState({ optionValue_staircasing: MapModes.MAPDAT.staircaseModes.ON_UNOBTAINABLE.uniqueId });
     }
@@ -379,7 +379,7 @@ class MapartController extends Component {
     this.setState({ optionValue_extras_moreStaircasingOptions: !optionValue_extras_moreStaircasingOptions });
     if (optionValue_extras_moreStaircasingOptions) {
       if (optionValue_modeNBTOrMapdat === MapModes.SCHEMATIC_NBT.uniqueId) {
-        this.setState({ optionValue_staircasing: MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId });
+        this.setState({ optionValue_staircasing: MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId });
       } else {
         this.setState({ optionValue_staircasing: MapModes.MAPDAT.staircaseModes.ON_UNOBTAINABLE.uniqueId });
       }
@@ -415,6 +415,7 @@ class MapartController extends Component {
       ([
         MapModes.SCHEMATIC_NBT.staircaseModes.CLASSIC.uniqueId,
         MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId,
+        MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId,
         MapModes.MAPDAT.staircaseModes.ON.uniqueId,
         MapModes.MAPDAT.staircaseModes.ON_UNOBTAINABLE.uniqueId,
       ].includes(optionValue_staircasing)
@@ -568,8 +569,8 @@ class MapartController extends Component {
         window.location.replace("https://www.youtube.com/watch?v=cZ5wOPinZd4");
         return null;
       case "mares":
-        document.body.style.backgroundSize="100%";
-        fetch("https://derpibooru.org/api/v1/json/search/images?q=scenery,score.gte:1000,safe&sf=random&per_page=1").then(req=>req.json()).then(derp=>document.body.style.backgroundImage=`url(${derp.images[0].representations.full})`);
+        document.body.style.backgroundSize = "100%";
+        fetch("https://derpibooru.org/api/v1/json/search/images?q=scenery,score.gte:1000,safe&sf=random&per_page=1").then(req => req.json()).then(derp => document.body.style.backgroundImage = `url(${derp.images[0].representations.full})`);
         return null;
     }
     if (!/^[0-9a-zQ-ZA-P]*$/g.test(encodedPreset)) {

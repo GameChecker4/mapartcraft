@@ -99,6 +99,7 @@
       "OFF": "Desligado (2D)",
       "CLASSIC": "Ligado (classico)",
       "VALLEY": null,
+      "LAYERED": null,
       "FULL-DARK": null,
       "FULL-LIGHT": null,
       "ON": "Ligado",

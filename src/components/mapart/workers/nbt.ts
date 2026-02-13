@@ -11,7 +11,7 @@ var coloursJSON: Record<string, {
   }>,
 }>
 
-type StaircaseMode = "OFF" | "CLASSIC" | "VALLEY" | "FULL_DARK" | "FULL_LIGHT";
+type StaircaseMode = "OFF" | "CLASSIC" | "VALLEY" | "LAYERED" | "FULL_DARK" | "FULL_LIGHT";
 
 var MapModes: {
   SCHEMATIC_NBT: {
@@ -1003,6 +1003,10 @@ onmessage = (e) => {
     case "CREATE_NBT_JOINED_FOR_VIEW_ONLINE":
     case "CREATE_NBT_JOINED":
     case "CREATE_NBT_SPLIT": {
+      // Layered mode is not implemented, use Valley as fallback
+      if (optionValue_staircasing === MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId) {
+        optionValue_staircasing = MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId;
+      }
       for (let whichMap_y = 0; whichMap_y < maps.length; whichMap_y++) {
         for (let whichMap_x = 0; whichMap_x < maps[0].length; whichMap_x++) {
           const map_NBT = new Map_NBT(maps[whichMap_y][whichMap_x]);

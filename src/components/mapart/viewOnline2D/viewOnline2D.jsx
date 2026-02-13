@@ -148,6 +148,7 @@ class ViewOnline2D extends Component {
           [
             MapModes.SCHEMATIC_NBT.staircaseModes.CLASSIC.uniqueId,
             MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId,
+            MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId,
             MapModes.MAPDAT.staircaseModes.ON.uniqueId,
             MapModes.MAPDAT.staircaseModes.ON_UNOBTAINABLE.uniqueId,
           ].includes(optionValue_staircasing)
