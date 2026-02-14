@@ -48,6 +48,12 @@ var progressReportHead: string;
 
 var csharpWasm: CsharpWasm;
 
+enum Direction {
+  Down = -1,
+  Flat = 0,
+  Up = 1,
+}
+
 /*
   A mapping from type names to NBT type numbers.
   This is NOT just an enum, these values have to stay as they are
@@ -376,7 +382,7 @@ class Map_NBT {
   private NBT_json: NBTTopLevelCompound<NBTMap>;
   private palette_colourSetId_paletteId: Record<string, number>;
   private palette_paletteId_colourSetId: string[];
-  private columnHeightsCache: number[];
+  private heightMap: number[][];
 
   constructor(map: MapData) {
     this.mapColoursLayout = map.coloursLayout;
@@ -424,7 +430,7 @@ class Map_NBT {
     };
     this.palette_colourSetId_paletteId = {}; // map coloursJSON colourSetIds to index of corresponding block in palette list
     this.palette_paletteId_colourSetId = []; // map paletteIds (index of an item in this list) to colourSetIds
-    this.columnHeightsCache = []; // appended to in getPhysicalLayout_individualColumn, used in setNBT_json_size
+    this.heightMap = [];
   }
 
   constructPaletteLookups() {
@@ -486,303 +492,301 @@ class Map_NBT {
     };
   }
 
-  getPhysicalLayout() {
-    for (let columnNumber = 0; columnNumber < this.mapColoursLayout.length; columnNumber++) {
-      this.getPhysicalLayout_individualColumn(columnNumber);
-      postMessage({
-        head: progressReportHead,
-        body: (columnNumber + 1) / this.mapColoursLayout.length,
-      });
-    }
+  async getPhysicalLayout() {
+    let supportsMap = this.generateSupportsMap(this.mapColoursLayout);
+    reportProgress(0.3);
+    this.heightMap = await this.generateHeightMap(this.mapColoursLayout, supportsMap);
+    reportProgress(0.7);
+    this.writePhysicalLayout(this.mapColoursLayout, this.heightMap, supportsMap);
+    reportProgress(1);
   }
 
-  getPhysicalLayout_individualColumn(columnNumber: number) {
-    const mapColoursLayoutColumn = this.mapColoursLayout[columnNumber];
-    let physicalColumn: NBTPhisicalBlock[] = [];
-    let currentHeight: number;
-    switch (optionValue_staircasing) {
-      case MapModes.SCHEMATIC_NBT.staircaseModes.OFF.uniqueId: {
-        // start at y = 2 for flat maps; this covers the cases of support blocks 1 and or 2 blocks below
-        currentHeight = 2;
-        break;
-      }
-      case MapModes.SCHEMATIC_NBT.staircaseModes.CLASSIC.uniqueId:
-      case MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId: {
-        // this doesn't matter
-        // in the classic case each column is later adjusted to have its global minimum at y = 0 so the map has a common base / is as short as possible
-        // in the valley case valleys are pulled down to y = 0
-        currentHeight = 0;
-        break;
-      }
-      case MapModes.SCHEMATIC_NBT.staircaseModes.FULL_DARK.uniqueId: {
-        // staircase descends from noobline southwards
-        currentHeight = 1 + mapColoursLayoutColumn.length;
-        break;
-      }
-      case MapModes.SCHEMATIC_NBT.staircaseModes.FULL_LIGHT.uniqueId: {
-        // staircase ascends from noobline southwards
-        currentHeight = 1;
-        break;
-      }
-      default: {
-        throw new Error("Unknown staircase mode");
+  generateSupportsMap(mapColoursLayout: Colour[][]) {
+    const width = mapColoursLayout.length;
+    const length = mapColoursLayout[0].length;
+    const supportsMap = new Array<number[]>(width);
+
+    const addSupportBlock = (x: number, z: number) => {
+      supportsMap[x][z]++;
+    }
+
+    for (let x = 0; x < width; x++) {
+      const mapColoursLayoutColumn = mapColoursLayout[x];
+      supportsMap[x] = new Array<number>(length + 1).fill(0);
+
+      for (let z = 0; z < length; z++) {
+        const coloursLayoutBlock = mapColoursLayoutColumn[z];
+
+        // read docs/supportBlocks.md to know how this works
+        switch (optionValue_whereSupportBlocks) {
+          case WhereSupportBlocksModes.NONE.uniqueId: {
+            break;
+          }
+          case WhereSupportBlocksModes.IMPORTANT.uniqueId: {
+            if (isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock)) {
+              addSupportBlock(x, z + 1);
+            }
+            break;
+          }
+          case WhereSupportBlocksModes.ALL_OPTIMIZED.uniqueId: {
+            switch (z) {
+              case 0: {
+                if (
+                  coloursLayoutBlock.tone === "dark" ||
+                  (coloursLayoutBlock.tone === "normal" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock))
+                ) {
+                  // first under-support block
+                  addSupportBlock(x, z);
+                }
+                if (coloursLayoutBlock.tone === "dark" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock)) {
+                  // second under-support block
+                  addSupportBlock(x, z);
+                }
+                break;
+              }
+              case 1: {
+                const coloursLayoutBlock_0 = mapColoursLayoutColumn[z - 1];
+                if (
+                  coloursLayoutBlock_0.tone === "light" ||
+                  coloursLayoutBlock.tone === "dark" ||
+                  isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_0) ||
+                  (coloursLayoutBlock.tone === "normal" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock))
+                ) {
+                  // first under-support block
+                  addSupportBlock(x, z);
+                }
+                if (coloursLayoutBlock.tone === "dark" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock)) {
+                  // second under-support block
+                  addSupportBlock(x, z);
+                }
+                break;
+              }
+              case mapColoursLayoutColumn.length - 1: {
+                // falls through
+                const coloursLayoutBlock_north = mapColoursLayoutColumn[z - 1];
+                if (
+                  coloursLayoutBlock.tone === "light" ||
+                  isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock) ||
+                  (coloursLayoutBlock.tone === "normal" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_north))
+                ) {
+                  // first under-support block
+                  addSupportBlock(x, z + 1);
+                }
+                if (coloursLayoutBlock.tone === "light" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_north)) {
+                  // second under-support block
+                  addSupportBlock(x, z + 1);
+                }
+              }
+              // eslint-disable-next-line no-fallthrough
+              default: {
+                const coloursLayoutBlock_north = mapColoursLayoutColumn[z - 2];
+                const coloursLayoutBlock_inQuestion = mapColoursLayoutColumn[z - 1];
+                if (
+                  coloursLayoutBlock_inQuestion.tone === "light" ||
+                  coloursLayoutBlock.tone === "dark" ||
+                  isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_inQuestion) ||
+                  (coloursLayoutBlock.tone === "normal" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock)) ||
+                  (coloursLayoutBlock_inQuestion.tone === "normal" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_north))
+                ) {
+                  // first under-support block
+                  addSupportBlock(x, z);
+                }
+                if (
+                  (coloursLayoutBlock.tone === "dark" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock)) ||
+                  (coloursLayoutBlock_inQuestion.tone === "light" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_north))
+                ) {
+                  // second under-support block
+                  addSupportBlock(x, z);
+                }
+                break;
+              }
+            }
+            break;
+          }
+          case WhereSupportBlocksModes.ALL_DOUBLE_OPTIMIZED.uniqueId: {
+            switch (z) {
+              case 0: {
+                addSupportBlock(x, z);
+                if (coloursLayoutBlock.tone === "dark") {
+                  addSupportBlock(x, z);
+                }
+                break;
+              }
+              case mapColoursLayoutColumn.length - 1: {
+                addSupportBlock(x, z + 1);
+                if (coloursLayoutBlock.tone === "light") {
+                  addSupportBlock(x, z + 1);
+                }
+                // falls through
+              }
+              // eslint-disable-next-line no-fallthrough
+              default: {
+                addSupportBlock(x, z);
+                const coloursLayoutBlock_inQuestion = mapColoursLayoutColumn[z - 1];
+                if (coloursLayoutBlock_inQuestion.tone === "light" || coloursLayoutBlock.tone === "dark") {
+                  addSupportBlock(x, z);
+                }
+                break;
+              }
+            }
+            break;
+          }
+          default: {
+            throw new Error("Unknown support-blocks option");
+          }
+        }
+
       }
     }
 
-    // initialize noobline
-    physicalColumn.push(this.returnPhysicalBlock(columnNumber, currentHeight, 0, "NOOBLINE_SCAFFOLD"));
+    return supportsMap;
+  }
 
-    for (let rowNumber = 0; rowNumber < mapColoursLayoutColumn.length; rowNumber++) {
-      const coloursLayoutBlock = mapColoursLayoutColumn[rowNumber];
+  async generateHeightMap(colourMap: Colour[][], supportsMap: number[][]) {
+    const width = colourMap.length;
+    const length = colourMap[0].length;
+    const lengthWithNoobline = length + 1;
+    let directionMap: Direction[][];
 
-      const previousHeight = currentHeight;
-      switch (coloursLayoutBlock.tone) {
-        case "dark": {
-          currentHeight -= 1;
-          break;
-        }
-        case "normal": {
-          break;
-        }
-        case "light": {
-          currentHeight += 1;
-          break;
-        }
-        default: {
-          throw new Error("Unknown tone type");
-        }
-      }
-
-      physicalColumn.push(this.returnPhysicalBlock(columnNumber, currentHeight, rowNumber + 1, coloursLayoutBlock.colourSetId));
-      // the + 1 is because the noobline offsets everything South one block
-
-      // read docs/supportBlocks.md to know how this works
-      switch (optionValue_whereSupportBlocks) {
-        case WhereSupportBlocksModes.NONE.uniqueId: {
-          break;
-        }
-        case WhereSupportBlocksModes.IMPORTANT.uniqueId: {
-          if (isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock)) {
-            physicalColumn.push(this.returnPhysicalBlock(columnNumber, currentHeight - 1, rowNumber + 1, "NOOBLINE_SCAFFOLD"));
-          }
-          break;
-        }
-        case WhereSupportBlocksModes.ALL_OPTIMIZED.uniqueId: {
-          switch (rowNumber) {
-            case 0: {
-              if (
-                coloursLayoutBlock.tone === "dark" ||
-                (coloursLayoutBlock.tone === "normal" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock))
-              ) {
-                // first under-support block
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, previousHeight - 1, rowNumber, "NOOBLINE_SCAFFOLD"));
-              }
-              if (coloursLayoutBlock.tone === "dark" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock)) {
-                // second under-support block
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, previousHeight - 2, rowNumber, "NOOBLINE_SCAFFOLD"));
-              }
-              break;
-            }
-            case 1: {
-              const coloursLayoutBlock_0 = mapColoursLayoutColumn[rowNumber - 1];
-              if (
-                coloursLayoutBlock_0.tone === "light" ||
-                coloursLayoutBlock.tone === "dark" ||
-                isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_0) ||
-                (coloursLayoutBlock.tone === "normal" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock))
-              ) {
-                // first under-support block
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, previousHeight - 1, rowNumber, "NOOBLINE_SCAFFOLD"));
-              }
-              if (coloursLayoutBlock.tone === "dark" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock)) {
-                // second under-support block
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, previousHeight - 2, rowNumber, "NOOBLINE_SCAFFOLD"));
-              }
-              break;
-            }
-            case mapColoursLayoutColumn.length - 1: {
-              // falls through
-              const coloursLayoutBlock_north = mapColoursLayoutColumn[rowNumber - 1];
-              if (
-                coloursLayoutBlock.tone === "light" ||
-                isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock) ||
-                (coloursLayoutBlock.tone === "normal" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_north))
-              ) {
-                // first under-support block
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, currentHeight - 1, rowNumber + 1, "NOOBLINE_SCAFFOLD"));
-              }
-              if (coloursLayoutBlock.tone === "light" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_north)) {
-                // second under-support block
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, currentHeight - 2, rowNumber + 1, "NOOBLINE_SCAFFOLD"));
-              }
-            }
-            // eslint-disable-next-line no-fallthrough
-            default: {
-              const coloursLayoutBlock_north = mapColoursLayoutColumn[rowNumber - 2];
-              const coloursLayoutBlock_inQuestion = mapColoursLayoutColumn[rowNumber - 1];
-              if (
-                coloursLayoutBlock_inQuestion.tone === "light" ||
-                coloursLayoutBlock.tone === "dark" ||
-                isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_inQuestion) ||
-                (coloursLayoutBlock.tone === "normal" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock)) ||
-                (coloursLayoutBlock_inQuestion.tone === "normal" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_north))
-              ) {
-                // first under-support block
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, previousHeight - 1, rowNumber, "NOOBLINE_SCAFFOLD"));
-              }
-              if (
-                (coloursLayoutBlock.tone === "dark" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock)) ||
-                (coloursLayoutBlock_inQuestion.tone === "light" && isSupportBlockMandatoryForColourSetIdAndTone(coloursLayoutBlock_north))
-              ) {
-                // second under-support block
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, previousHeight - 2, rowNumber, "NOOBLINE_SCAFFOLD"));
-              }
-              break;
-            }
-          }
-          break;
-        }
-        case WhereSupportBlocksModes.ALL_DOUBLE_OPTIMIZED.uniqueId: {
-          switch (rowNumber) {
-            case 0: {
-              physicalColumn.push(this.returnPhysicalBlock(columnNumber, previousHeight - 1, rowNumber, "NOOBLINE_SCAFFOLD"));
-              if (coloursLayoutBlock.tone === "dark") {
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, previousHeight - 2, rowNumber, "NOOBLINE_SCAFFOLD"));
-              }
-              break;
-            }
-            case mapColoursLayoutColumn.length - 1: {
-              physicalColumn.push(this.returnPhysicalBlock(columnNumber, currentHeight - 1, rowNumber + 1, "NOOBLINE_SCAFFOLD"));
-              if (coloursLayoutBlock.tone === "light") {
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, currentHeight - 2, rowNumber + 1, "NOOBLINE_SCAFFOLD"));
-              }
-              // falls through
-            }
-            // eslint-disable-next-line no-fallthrough
-            default: {
-              physicalColumn.push(this.returnPhysicalBlock(columnNumber, previousHeight - 1, rowNumber, "NOOBLINE_SCAFFOLD"));
-              const coloursLayoutBlock_inQuestion = mapColoursLayoutColumn[rowNumber - 1];
-              if (coloursLayoutBlock_inQuestion.tone === "light" || coloursLayoutBlock.tone === "dark") {
-                physicalColumn.push(this.returnPhysicalBlock(columnNumber, previousHeight - 2, rowNumber, "NOOBLINE_SCAFFOLD"));
-              }
-              break;
-            }
-          }
-          break;
-        }
-        default: {
-          throw new Error("Unknown support-blocks option");
-        }
-      }
-    }
-
-    // sort in terms of z and y, necessary for determining when a plateau has finished in valley mode, and correct noobline heights in map preview
-    physicalColumn.sort((elt1, elt2) => {
-      if (elt1.pos.value.value[2] < elt2.pos.value.value[2]) {
-        return -1;
-      } else if (elt1.pos.value.value[2] > elt2.pos.value.value[2]) {
-        // smaller Z first
-        return 1;
-      } else {
-        if (elt1.pos.value.value[1] > elt2.pos.value.value[1]) {
-          return -1;
-        } else {
-          // higher Y first
-          return 1;
-        }
-      }
-    });
+    let heightMap: number[][] = [];
 
     switch (optionValue_staircasing) {
-      case MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId: {
-        let plateaus = [{ startIndex: 0, endIndex: 0 }];
-        // initial 0 width plateau useful just so we don't have a special case for the first proper plateau later
-        let ascending = false; // weakly ascending
-        let currentPlateauStartIndex = 0;
-        let visibleBlocksHeight = physicalColumn[0].pos.value.value[1]; // initialise to noobline height
-        // visible blocks are blocks at the top height in a x-z column, the actual map blocks that give the colours
-
-        for (let i = 0; i < physicalColumn.length; i++) {
-          const physicalBlock = physicalColumn[i];
-          if (this.palette_paletteId_colourSetId[physicalBlock.state.value] === "NOOBLINE_SCAFFOLD") {
-            continue;
-          }
-          if (ascending && physicalBlock.pos.value.value[1] < visibleBlocksHeight) {
-            // dark after ascent; plateau found
-            ascending = false;
-            plateaus.push({
-              startIndex: currentPlateauStartIndex,
-              endIndex: i,
-            });
-          } else if (physicalBlock.pos.value.value[1] > visibleBlocksHeight) {
-            // light
-            ascending = true;
-            currentPlateauStartIndex = i;
-          }
-          visibleBlocksHeight = physicalBlock.pos.value.value[1];
-        }
-
-        plateaus.push({ startIndex: physicalColumn.length, endIndex: physicalColumn.length });
-
-        let nonPlateauPulldownHeights = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER];
-        while (plateaus.length !== 1) {
-          let pullDownHeight = Number.MAX_SAFE_INTEGER;
-          for (let i = plateaus[0].endIndex; i < plateaus[1].startIndex; i++) {
-            pullDownHeight = Math.min(physicalColumn[i].pos.value.value[1], pullDownHeight);
-          }
-          for (let i = plateaus[0].endIndex; i < plateaus[1].startIndex; i++) {
-            physicalColumn[i].pos.value.value[1] -= pullDownHeight;
-          }
-          nonPlateauPulldownHeights[1] = pullDownHeight;
-          const plateauPulldownHeight = Math.min(...nonPlateauPulldownHeights);
-          // we pull down a plateau by the minimum of the two values the surrounding non-plateaus were pulled down by
-          for (let i = plateaus[0].startIndex; i < plateaus[0].endIndex; i++) {
-            physicalColumn[i].pos.value.value[1] -= plateauPulldownHeight;
-          }
-          plateaus.shift();
-          nonPlateauPulldownHeights[0] = nonPlateauPulldownHeights[1];
-        }
-        break;
-      }
-      case MapModes.SCHEMATIC_NBT.staircaseModes.CLASSIC.uniqueId: {
-        // make sure the column's global minimum is at y = 0; doing this for every column gives the map a common base.
-        const columnMinimumY = physicalColumn.reduce((a, b) => (a.pos.value.value[1] < b.pos.value.value[1] ? a : b)).pos.value.value[1];
-        physicalColumn.forEach((block) => {
-          block.pos.value.value[1] -= columnMinimumY;
-        });
-        break;
-      }
       case MapModes.SCHEMATIC_NBT.staircaseModes.OFF.uniqueId:
-      case MapModes.SCHEMATIC_NBT.staircaseModes.FULL_DARK.uniqueId:
-      case MapModes.SCHEMATIC_NBT.staircaseModes.FULL_LIGHT.uniqueId: {
+        for (let x = 0; x < width; x++) {
+          let column: number[] = [];
+          for (let z = 0; z < lengthWithNoobline; z++)
+            column.push(2);
+          heightMap.push(column);
+        }
         break;
+
+      case MapModes.SCHEMATIC_NBT.staircaseModes.FULL_LIGHT.uniqueId:
+        for (let x = 0; x < width; x++) {
+          let column: number[] = [];
+          for (let z = 0; z < lengthWithNoobline; z++)
+            column.push(z + 1);
+          heightMap.push(column);
+        }
+        break;
+
+      case MapModes.SCHEMATIC_NBT.staircaseModes.FULL_DARK.uniqueId:
+        for (let x = 0; x < width; x++) {
+          let column: number[] = [];
+          for (let z = 0; z < lengthWithNoobline; z++)
+            column.push(lengthWithNoobline - z);
+          heightMap.push(column);
+        }
+        break;
+
+      case MapModes.SCHEMATIC_NBT.staircaseModes.CLASSIC.uniqueId:
+        directionMap = generateDirectionMap(colourMap);
+        for (let x = 0; x < width; x++) {
+          let column: number[] = [];
+          column.push(0);
+          for (let z = 0; z < length; z++)
+            column.push(column[z] + directionMap[x][z]);
+          setColumnMinYToZero(column, supportsMap[x]);
+          heightMap.push(column);
+        }
+        break;
+
+      case MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId:
+        await (await CsharpWasmImport).Program.HelloWorld(reportProgress);
+      // Fall to Valley
+
+      case MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId:
+        directionMap = generateDirectionMap(colourMap);
+        for (let x = 0; x < width; x++) {
+          let column: number[] = [];
+          column.push(supportsMap[x][0]);
+          for (let z = 0; z < length; z++) {
+            let direction = directionMap[x][z];
+            let targetHeight = direction == Direction.Down ? 0 : column[z] + direction;
+            column.push(Math.max(targetHeight, supportsMap[x][z + 1]));
+          }
+
+          for (let z = length - 1; z >= 0; z--) {
+            let direction = directionMap[x][z];
+            if (direction != Direction.Up)
+              column[z] = Math.max(column[z], column[z + 1] - direction);
+          }
+          heightMap.push(column);
+        }
+        break;
+    }
+
+    return heightMap;
+
+    function generateDirectionMap(colourMap: Colour[][]) {
+      let directionMap: Direction[][] = [];
+      for (let x = 0; x < colourMap.length; x++) {
+        let column: Direction[] = [];
+        for (let z = 0; z < colourMap[x].length; z++)
+          column.push(getDirection(x, z));
+        directionMap.push(column);
       }
-      default: {
-        throw new Error("Unknown staircase mode");
+      return directionMap;
+
+      function getDirection(x: number, z: number) {
+        switch (colourMap[x][z].tone) {
+          case "dark":
+            return Direction.Down;
+          case "normal":
+            return Direction.Flat;
+          case "light":
+            return Direction.Up;
+          default:
+            throw new Error("Unknown or unsupported colour tone");
+        }
       }
     }
 
-    this.NBT_json.value.blocks.value.value = this.NBT_json.value.blocks.value.value.concat(physicalColumn);
-    this.columnHeightsCache.push(physicalColumn.reduce((a, b) => (a.pos.value.value[1] > b.pos.value.value[1] ? a : b)).pos.value.value[1]);
+    function setColumnMinYToZero(column: number[], supportsColumn: number[]) {
+      let minY = column.reduce((minY, y, z) => Math.min(minY, y - supportsColumn[z]), column[0]);
+      for (let z = 0; z < column.length; z++)
+        column[z] -= minY;
+    }
   }
 
-  setNBT_json_blocks() {
-    this.getPhysicalLayout();
+  writePhysicalLayout(colourMap: Colour[][], heightMap: number[][], supportsMap: number[][]) {
+    const blocks = this.NBT_json.value.blocks.value.value;
+
+    const addBlockWithSupports = (x: number, z: number, colourSetId: string) => {
+      blocks.push(this.returnPhysicalBlock(x, heightMap[x][z], z, colourSetId));
+      for (let support = 0; support < supportsMap[x][z]; support++)
+        blocks.push(this.returnPhysicalBlock(x, heightMap[x][z] - support - 1, z, "NOOBLINE_SCAFFOLD"));
+    }
+
+    const width = heightMap.length;
+    const lengthWithNoobline = heightMap[0].length;
+    for (let x = 0; x < width; x++) {
+      addBlockWithSupports(x, 0, "NOOBLINE_SCAFFOLD");
+      for (let z = 1; z < lengthWithNoobline; z++)
+        addBlockWithSupports(x, z, colourMap[x][z - 1].colourSetId);
+    }
+  }
+
+  getMaxY(blocks: NBTPhisicalBlock[]) {
+    return blocks.reduce((maxY, block) => Math.max(maxY, block.pos.value.value[1]), Number.MIN_SAFE_INTEGER);
+  }
+
+  async setNBT_json_blocks() {
+    await this.getPhysicalLayout();
   }
 
   setNBT_json_size() {
     this.NBT_json.value.size.value.value = [
       this.mapColoursLayout.length,
-      this.columnHeightsCache.reduce((a, b) => (a > b ? a : b)) + 1,
+      this.getMaxY(this.NBT_json.value.blocks.value.value) + 1,
       this.mapColoursLayout[0].length + 1,
     ];
   }
 
-  getNBT() {
+  async getNBT() {
     this.constructPaletteLookups();
     this.setNBT_json_palette();
     this.setNBT_json_DataVersion();
-    this.setNBT_json_blocks();
+    await this.setNBT_json_blocks();
     this.setNBT_json_size();
 
     // console.log(NBT_json);
@@ -877,10 +881,7 @@ class Map_Mapdat {
         }
         this.NBT_json.value.data.value.colors.value[arrayOffset] = mapdatId;
       }
-      postMessage({
-        head: progressReportHead,
-        body: (x + 1) / 128,
-      });
+      reportProgress((x + 1) / 128);
     }
   }
 
@@ -980,6 +981,15 @@ function setupColoursLayoutsFromPixelsData() {
   }
 }
 
+
+
+function reportProgress(progress: number) {
+  postMessage({
+    head: progressReportHead,
+    body: progress,
+  });
+}
+
 onmessage = async (e) => {
   coloursJSON = e.data.body.coloursJSON;
   MapModes = e.data.body.MapModes;
@@ -1007,25 +1017,10 @@ onmessage = async (e) => {
     case "CREATE_NBT_JOINED_FOR_VIEW_ONLINE":
     case "CREATE_NBT_JOINED":
     case "CREATE_NBT_SPLIT": {
-      // Layered mode is not implemented, use Valley as fallback
-      if (optionValue_staircasing === MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId) {
-        optionValue_staircasing = MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId;
-
-        if (csharpWasm === undefined) {
-          csharpWasm = await CsharpWasmImport;
-        }
-
-        await csharpWasm.Program.HelloWorld((progress) => {
-          postMessage({
-            head: progressReportHead,
-            body: progress,
-          });
-        });
-      }
       for (let whichMap_y = 0; whichMap_y < maps.length; whichMap_y++) {
         for (let whichMap_x = 0; whichMap_x < maps[0].length; whichMap_x++) {
           const map_NBT = new Map_NBT(maps[whichMap_y][whichMap_x]);
-          const NBT_Array = map_NBT.getNBT();
+          const NBT_Array = await map_NBT.getNBT();
           postMessage({
             head: headerMessage === "CREATE_NBT_JOINED_FOR_VIEW_ONLINE" ? "NBT_FOR_VIEW_ONLINE" : "NBT_ARRAY",
             body: {
