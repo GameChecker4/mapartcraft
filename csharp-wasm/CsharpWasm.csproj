@@ -32,7 +32,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\csharp-solver\CsharpSolver.csproj" />
+      <ProjectReference Include="..\csharp-solver\MapartSolving.csproj" />
     </ItemGroup>
 
 </Project>

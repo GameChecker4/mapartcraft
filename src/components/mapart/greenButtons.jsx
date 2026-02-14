@@ -268,7 +268,7 @@ class GreenButtons extends Component {
               <div
                 className="greenButton_progressDiv"
                 style={{
-                  width: `${Math.floor(buttonWidth_viewOnline * 100)}%`,
+                  width: `${buttonWidth_viewOnline * 100}%`,
                 }}
               />
             </div>
@@ -281,7 +281,7 @@ class GreenButtons extends Component {
               <div
                 className="greenButton_progressDiv"
                 style={{
-                  width: `${Math.floor(buttonWidth_NBT_Joined * 100)}%`,
+                  width: `${buttonWidth_NBT_Joined * 100}%`,
                 }}
               />
             </div>
@@ -294,7 +294,7 @@ class GreenButtons extends Component {
               <div
                 className="greenButton_progressDiv"
                 style={{
-                  width: `${Math.floor(buttonWidth_NBT_Split * 100)}%`,
+                  width: `${buttonWidth_NBT_Split * 100}%`,
                 }}
               />
             </div>
@@ -312,7 +312,7 @@ class GreenButtons extends Component {
               <div
                 className="greenButton_progressDiv"
                 style={{
-                  width: `${Math.floor(buttonWidth_Mapdat_Split * 100)}%`,
+                  width: `${buttonWidth_Mapdat_Split * 100}%`,
                 }}
               />
             </div>
@@ -325,7 +325,7 @@ class GreenButtons extends Component {
               <div
                 className="greenButton_progressDiv"
                 style={{
-                  width: `${Math.floor(buttonWidth_Mapdat_Split * 100)}%`,
+                  width: `${buttonWidth_Mapdat_Split * 100}%`,
                 }}
               />
             </div>

@@ -2,8 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
-        <RootNamespace>CsharpSolver</RootNamespace>
-        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>MapartSolving</RootNamespace>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 

@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CsharpWasm", "csharp-wasm\CsharpWasm.csproj", "{262A00C2-B272-43EA-8BA1-F793D5906F93}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CsharpSolver", "csharp-solver\CsharpSolver.csproj", "{B7EC0C56-1858-4274-8EED-D1F37C04B10A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapartSolving", "csharp-solver\MapartSolving.csproj", "{B7EC0C56-1858-4274-8EED-D1F37C04B10A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,4 +1,4 @@
-import CsharpWasmImport, { CsharpWasm } from "../../../csharp-wasm/csharpWasmImport";
+import { GenerateLayersHeightMap, Direction } from "../../../csharp-wasm/csharpWasmImport";
 
 // begin variables passed in onmessage
 var coloursJSON: Record<string, {
@@ -45,14 +45,6 @@ var currentSelectedBlocks: Record<string, string>;
 var exactColourCache = new Map<number, Colour>(); // for mapping RGB that exactly matches in coloursJSON to colourSetId and tone
 
 var progressReportHead: string;
-
-var csharpWasm: CsharpWasm;
-
-enum Direction {
-  Down = -1,
-  Flat = 0,
-  Up = 1,
-}
 
 /*
   A mapping from type names to NBT type numbers.
@@ -690,10 +682,6 @@ class Map_NBT {
         }
         break;
 
-      case MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId:
-        await (await CsharpWasmImport).Program.HelloWorld(reportProgress);
-      // Fall to Valley
-
       case MapModes.SCHEMATIC_NBT.staircaseModes.VALLEY.uniqueId:
         directionMap = generateDirectionMap(colourMap);
         for (let x = 0; x < width; x++) {
@@ -712,6 +700,12 @@ class Map_NBT {
           }
           heightMap.push(column);
         }
+        break;
+
+      case MapModes.SCHEMATIC_NBT.staircaseModes.LAYERED.uniqueId:
+        directionMap = generateDirectionMap(colourMap);
+        heightMap = await GenerateLayersHeightMap(directionMap, reportProgress);
+        setMinYToZero(heightMap, supportsMap);
         break;
     }
 
@@ -745,6 +739,17 @@ class Map_NBT {
       let minY = column.reduce((minY, y, z) => Math.min(minY, y - supportsColumn[z]), column[0]);
       for (let z = 0; z < column.length; z++)
         column[z] -= minY;
+    }
+
+    function setMinYToZero(heights: number[][], supports: number[][]) {
+      let minY = heights.reduce(
+        (columnMinY, column, x) => Math.min(columnMinY, column.reduce(
+          (minY, y, z) => Math.min(minY, y - supports[x][z]),
+          Number.MAX_SAFE_INTEGER)),
+        Number.MAX_SAFE_INTEGER);
+      for (let x = 0; x < heights.length; x++)
+        for (let z = 0; z < heights[x].length; z++)
+          heights[x][z] -= minY;
     }
   }
 

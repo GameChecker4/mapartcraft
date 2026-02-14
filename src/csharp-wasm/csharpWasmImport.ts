@@ -1,6 +1,6 @@
 import { dotnet } from "./build/wwwroot/_framework/dotnet";
 
-export default new Promise<CsharpWasm>(async (resolve, reject) => {
+const initializationPromise = new Promise<CsharpWasm>(async (resolve, reject) => {
     const { getAssemblyExports, getConfig } = await dotnet
         .withDiagnosticTracing(false)
         .create();
@@ -17,9 +17,17 @@ export default new Promise<CsharpWasm>(async (resolve, reject) => {
     resolve(csharpWasm);
 });
 
+export default initializationPromise;
+
+export enum Direction {
+    Down = -1,
+    Flat = 0,
+    Up = 1,
+}
+
 export type CsharpWasm = {
     Program: {
-        HelloWorld(progressCallback: (progress: number) => void): Promise<void>;
+        HelloWorld(solverParamsJson: string, progressCallback: (progress: number) => void): Promise<string>;
     }
 }
 
@@ -33,3 +41,15 @@ export let CsharpWasmLoading: {
     loaded: false,
     wasm: undefined,
 };
+
+export const GenerateLayersHeightMap = async (directions: Direction[][], progressCallback: (progress: number) => void) => {
+    const solverParamsJson = JSON.stringify({
+        Directions: directions,
+    });
+    const csharpWasm = await initializationPromise;
+    const resultJson = await csharpWasm.Program.HelloWorld(solverParamsJson, progressCallback);
+    const result = JSON.parse(resultJson) as {
+        HeightMap: number[][],
+    };
+    return result.HeightMap;
+}
