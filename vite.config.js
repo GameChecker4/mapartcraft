@@ -15,6 +15,7 @@ export default defineConfig({
     build: {
         outDir: 'build', // CRA's default build output
     },
+    base: "/mapartcraft/",
     assetsInclude: [
         "**/*.dll",
     ],
